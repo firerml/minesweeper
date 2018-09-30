@@ -34,12 +34,12 @@ class Game:
         self.num_cols = num_cols
         self.num_mines = num_mines
         self.board = []
-        self.__make_board()
+        self._make_board()
 
     def play(self):
-        self.__print_board()
+        self._print_board()
         while True:
-            user_input = self.__get_input()
+            user_input = self._get_input()
             cell = user_input['cell']
             if not cell:
                 print('Bye!')
@@ -49,14 +49,20 @@ class Game:
             else:
                 cell.revealed = True
                 if cell.is_mine:
-                    self.__print_board()
-                    print('AHHH!')
+                    self._print_board()
+                    print('AHHH! You exploded.')
                     break
-                elif cell.num_adjacent_mines == 0:
-                    self.__reveal_cells_around_zero(cell)
-            self.__print_board()
+                else:
+                    if cell.num_adjacent_mines == 0:
+                        self._reveal_cells_around_zero(cell)
 
-    def __make_board(self):
+            self._print_board()
+
+            if self._won():
+                print('YOU WIN!!!')
+                break
+
+    def _make_board(self):
         all_cells = []
 
         for row_index in range(self.num_rows):
@@ -78,15 +84,23 @@ class Game:
                 adjacent_cells = self._get_adjacent_cells(cell)
                 cell.num_adjacent_mines = sum(cell.is_mine for cell in adjacent_cells)
 
-    def __reveal_cells_around_zero(self, cell):
+    def _won(self):
+        won = True
+        for row in self.board:
+            for cell in row:
+                if not cell.revealed and not cell.is_mine:
+                    won = False
+        return won
+
+    def _reveal_cells_around_zero(self, cell):
         adjacent_cells = self._get_adjacent_cells(cell)
         for adjacent_cell in adjacent_cells:
             was_revealed_before = adjacent_cell.revealed
             adjacent_cell.revealed = True
             if adjacent_cell.num_adjacent_mines == 0 and not was_revealed_before:
-                self.__reveal_cells_around_zero(adjacent_cell)
+                self._reveal_cells_around_zero(adjacent_cell)
 
-    def __get_input(self):
+    def _get_input(self):
         coord_string = input(
             'Coordinates, please! x,y format, starting with 0,0. To flag, put "f" first: f0,0. (q to quit)\n'
         )
@@ -103,14 +117,18 @@ class Game:
                     cell = self.board[coords[0]][coords[1]]
                     if cell.flagged and not flag:
                         coord_string = input('Can\'t reveal a flagged cell. Try again.\n')
+                    elif cell.revealed and flag:
+                        coord_string = input('Can\'t flag a revealed cell. Try again.\n')
                     else:
                         return {'cell': self.board[coords[0]][coords[1]], 'flag': flag, 'coords': coords}
             except:
                 coord_string = input('INVALID COORDINATES. Try again.\n')
 
-    def __print_board(self):
-        for row in self.board:
-            print(''.join([cell.get_visual_representation() for cell in row]))
+    def _print_board(self):
+        for row_index, row in enumerate(self.board):
+            if row_index == 0:
+                print('   ' + '  '.join(str(i) for i in range(len(row))))
+            print('{} {}'.format(row_index, ''.join([cell.get_visual_representation() for cell in row])))
 
     def _get_adjacent_cells(self, cell):
         adjacent_cells = []
